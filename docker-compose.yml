@@ -1,0 +1,25 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  nodejs-database:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - database_data:/data
+    environment:
+      - DB_PORT=8080
+      - DB_HOST=0.0.0.0
+      - DB_DATA_PATH=/data
+      - DB_CLUSTER=false
+      - DB_MAX_MEMORY=512
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  database_data:

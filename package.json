@@ -1,0 +1,40 @@
+{
+  "name": "nodejs-database",
+  "version": "1.0.0",
+  "description": "A complete Node.js database from scratch",
+  "main": "database/Database.js",
+  "scripts": {
+    "start": "node bin/db-cli.js start",
+    "dev": "node bin/db-cli.js start --no-cluster --port 8080",
+    "cli": "node bin/db-cli.js",
+    "test": "node tests/run-tests.js",
+    "test:performance": "node tests/performance.test.js",
+    "build": "echo 'No build step required'",
+    "prepublishOnly": "npm test"
+  },
+  "author": "Akthar99",
+  "license": "ISC",
+  "dependencies": {
+    "uuid": "^9.0.0",
+    "ws": "^8.14.2",
+    "commander": "^11.1.0",
+    "lru-cache": "^10.0.1"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "node-fetch": "^3.3.2"
+  },
+  "keywords": [
+    "database",
+    "nosql",
+    "nodejs",
+    "websocket",
+    "rest-api",
+    "real-time",
+    "cli"
+  ],
+    "repository": {
+    "type": "git",
+    "url": "https://github.com/Akthar99/NodeDB.git"
+  },
+}
