@@ -1,10 +1,14 @@
 {
-  "name": "nodejs-database",
+  "name": "nodedb",
   "version": "1.0.0",
   "description": "A complete Node.js database from scratch",
   "main": "database/Database.js",
+  "bin": {
+    "nodedb": "./bin/db-cli.js"
+  },
   "scripts": {
     "start": "node bin/server.js",
+    "start:secure": "node server/secure-server.js",
     "start:dev": "node bin/server.js --no-cluster --port 8080",
     "start:prod": "node bin/server.js --port 80 --workers 4 --max-memory 2048",
     "start:cli": "node bin/db-cli.js start",
@@ -18,7 +22,8 @@
     "build": "echo 'No build step required'",
     "dev": "node bin/db-cli.js start --no-cluster --port 8080",
     "cli": "node bin/db-cli.js",
-    "prepublishOnly": "npm test"
+    "prepublishOnly": "npm test",
+    "deploy": "npm run build && npm start:prod"
   },
   "author": "Akthar99",
   "license": "ISC",
@@ -26,7 +31,10 @@
     "uuid": "^9.0.0",
     "ws": "^8.14.2",
     "commander": "^11.1.0",
-    "lru-cache": "^10.0.1"
+    "lru-cache": "^10.0.1",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5",
+    "cors": "^2.8.5"
   },
   "devDependencies": {
     "jest": "^29.0.0",
@@ -38,5 +46,9 @@
     "nosql",
     "websocket",
     "performance"
-  ]
+  ],
+    "repository": {
+    "type": "git",
+    "url": "https://github.com/Akthar99/NodeDB"
+  }
 }
