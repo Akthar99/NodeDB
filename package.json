@@ -1,5 +1,5 @@
 {
-  "name": "nodedb",
+  "name": "nodedb-lw",
   "version": "1.0.2",
   "description": "A complete Node.js database from scratch",
   "main": "database/Database.js",
