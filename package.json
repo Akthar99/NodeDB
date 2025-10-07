@@ -13,7 +13,7 @@
     "start:prod": "node bin/server.js --port 80 --workers 4 --max-memory 2048",
     "start:cli": "node bin/db-cli.js start",
     "client": "node examples/client-demo.js",
-    "test": "node tests/run-tests.js",
+    "test": "node tests/simple-test.js",
     "test:server": "node tests/server.test.js",
     "test:simple": "node tests/simple-test.js",
     "test:core": "node tests/database-core.test.js",
