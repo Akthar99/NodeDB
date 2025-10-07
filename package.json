@@ -1,6 +1,6 @@
 {
   "name": "nodedb",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A complete Node.js database from scratch",
   "main": "database/Database.js",
   "bin": {
@@ -47,7 +47,7 @@
     "websocket",
     "performance"
   ],
-    "repository": {
+  "repository": {
     "type": "git",
     "url": "https://github.com/Akthar99/NodeDB"
   }
