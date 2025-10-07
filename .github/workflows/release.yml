@@ -5,15 +5,210 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:  # Allow manual triggering
+    inputs:
+      version:
+        description: 'Version to release'
+        required: true
+        type: string
 
 jobs:
   release:
+    name: Create Release
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+        registry-url: 'https://registry.npmjs.org'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Verify installation
+      run: |
+        node --version
+        npm --version
+        node bin/db-cli.js --version
+    
+    - name: Run tests
+      run: |
+        npm test
+        npm run test:performance
+    
+    - name: Get version
+      id: version
+      run: |
+        CURRENT_VERSION=$(node -p "require('./package.json').version")
+        echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+        echo "Current version: $CURRENT_VERSION"
+    
+    - name: Create release build
+      run: |
+        # Create distribution package
+        npm run build || echo "No build step"
+        
+        # Create package tarball
+        npm pack
+        ls -la *.tgz
+        
+        # Create binary distribution (optional)
+        mkdir -p dist
+        cp nodejs-database-*.tgz dist/
+        echo "Distribution files created"
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ steps.version.outputs.version }}
+        body: |
+          ## Node.js Database ${{ steps.version.outputs.version }}
+          
+          ### 🚀 New Features
+          - High-performance NoSQL database
+          - HTTP REST API & WebSocket support
+          - Real-time data synchronization
+          - Advanced querying with MongoDB-like syntax
+          
+          ### 📦 Installation
+          ```bash
+          # Using npm
+          npm install -g nodejs-database
+          
+          # Using Docker
+          docker run -p 8080:8080 yourusername/nodejs-database:${{ steps.version.outputs.version }}
+          ```
+          
+          ### 🛠 Quick Start
+          ```bash
+          # Start server
+          node-db start
+          
+          # Create collection
+          node-db create-collection users
+          
+          # Insert data
+          node-db insert users '{"name": "John", "age": 30}'
+          ```
+          
+          ### 📚 Documentation
+          Full documentation available at: https://github.com/${{ github.repository }}#readme
+          
+          ### 🔧 Changes
+          ${{ github.event.head_commit.message }}
+        draft: false
+        prerelease: false
+        files: |
+          nodejs-database-*.tgz
+          README.md
+          LICENSE
+          package.json
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-npm:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    needs: release
+    if: contains(github.ref, 'v') && !contains(github.ref, 'beta') && !contains(github.ref, 'alpha')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+        registry-url: 'https://registry.npmjs.org'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Verify package
+      run: |
+        npm run build || echo "No build step"
+        npm test
+    
+    - name: Publish to npm
+      run: npm publish
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  docker:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: release
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: yourusername/nodejs-database
+        tags: |
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+    
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  release-binaries:
+    name: Create Binary Releases
+    runs-on: ${{ matrix.os }}
+    needs: release
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset_name: nodejs-database-linux-x64
+          - os: macos-latest
+            asset_name: nodejs-database-macos-x64
+          - os: windows-latest
+            asset_name: nodejs-database-windows-x64.exe
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
     
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -24,49 +219,56 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
-    - name: Run tests
-      run: npm test
-    
-    - name: Create release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          nodejs-database-*.tgz
-          README.md
-          LICENSE
-        generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Publish to npm
+    - name: Create binary package
       run: |
-        echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-        npm publish
-      env:
-        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        # Install dependencies for binary
+        npm install -g pkg
+        npm run build || echo "No build step"
+        
+        # Create executable binary
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          pkg bin/db-cli.js --target node18-win-x64 --output ${{ matrix.asset_name }}
+        elif [ "$RUNNER_OS" == "macOS" ]; then
+          pkg bin/db-cli.js --target node18-macos-x64 --output ${{ matrix.asset_name }}
+        else
+          pkg bin/db-cli.js --target node18-linux-x64 --output ${{ matrix.asset_name }}
+        fi
+        
+        ls -la ${{ matrix.asset_name }}*
+    
+    - name: Upload binary to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        tag: ${{ github.ref }}
+        file: ${{ matrix.asset_name }}*
+        asset_name: ${{ matrix.asset_name }}
+        overwrite: true
 
-  docker:
+  notify:
+    name: Notify Success
     runs-on: ubuntu-latest
-    needs: release
+    needs: [release, publish-npm, docker]
+    if: always()
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Notify on success
+      if: needs.release.result == 'success' && needs.publish-npm.result == 'success'
+      run: |
+        echo "🎉 Release ${{ github.ref }} published successfully!"
+        echo "📦 npm: https://www.npmjs.com/package/nodejs-database"
+        echo "🐳 Docker: https://hub.docker.com/r/yourusername/nodejs-database"
+        echo "🏷 GitHub: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref }}"
     
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-    
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v2
+    - name: Notify on failure
+      if: needs.release.result == 'failure' || needs.publish-npm.result == 'failure'
+      run: |
+        echo "❌ Release failed!"
+        echo "Check the workflow run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+      uses: 8398a7/action-slack@v3
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-    
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        file: ./Dockerfile
-        push: true
-        tags: |
-          yourusername/nodejs-database:latest
-          yourusername/nodejs-database:${{ github.ref_name }}
+        status: failure
+        channel: '#releases'
+        text: 'Release ${{ github.ref }} failed!'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

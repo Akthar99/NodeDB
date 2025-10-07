@@ -4,12 +4,20 @@
   "description": "A complete Node.js database from scratch",
   "main": "database/Database.js",
   "scripts": {
-    "start": "node bin/db-cli.js start",
-    "dev": "node bin/db-cli.js start --no-cluster --port 8080",
-    "cli": "node bin/db-cli.js",
+    "start": "node bin/server.js",
+    "start:dev": "node bin/server.js --no-cluster --port 8080",
+    "start:prod": "node bin/server.js --port 80 --workers 4 --max-memory 2048",
+    "start:cli": "node bin/db-cli.js start",
+    "client": "node examples/client-demo.js",
     "test": "node tests/run-tests.js",
+    "test:server": "node tests/server.test.js",
+    "test:simple": "node tests/simple-test.js",
+    "test:core": "node tests/database-core.test.js",
+    "test:crud": "node tests/crud-operations.test.js",
     "test:performance": "node tests/performance.test.js",
     "build": "echo 'No build step required'",
+    "dev": "node bin/db-cli.js start --no-cluster --port 8080",
+    "cli": "node bin/db-cli.js",
     "prepublishOnly": "npm test"
   },
   "author": "Akthar99",
@@ -26,15 +34,9 @@
   },
   "keywords": [
     "database",
+    "server",
     "nosql",
-    "nodejs",
     "websocket",
-    "rest-api",
-    "real-time",
-    "cli"
-  ],
-    "repository": {
-    "type": "git",
-    "url": "https://github.com/Akthar99/NodeDB.git"
-  },
+    "performance"
+  ]
 }
